@@ -99,24 +99,34 @@ public class ReadAllDonations {
 	public static void readFile(Map<String, Donor> donorMap, File fileName) throws Exception 
 	{	
         try (CSVReader reader = new CSVReader(new FileReader(fileName))) {
-        	
-            List<String[]> recList = reader.readAll();                        
-            int i=0;
-            
-            for(String[] rec : recList)
-            {            	
-            	i++;
-            	if(i==1) {
-            		continue;
-            	}
 
-            	String fullName=null, firstName=null, lastName=null, email=null, phone=null, address1=null, city=null, state=null, zip=null, mode, project;
+            List<String[]> recList = reader.readAll();
+            if(recList.isEmpty()) return;
+
+            // Parse header to find column indices
+            String[] header = recList.get(0);
+            int colCount = header.length;
+            int modeIdx = -1, projectIdx = -1, amountIdx = -1;
+            for(int h=0; h<colCount; h++) {
+            	String col = header[h].trim().toLowerCase();
+            	if(col.equals("mode")) modeIdx = h;
+            	else if(col.equals("project")) projectIdx = h;
+            	else if(col.equals("amount")) amountIdx = h;
+            }
+            // Default amount index if not found by header (fallback to index 9)
+            if(amountIdx == -1) amountIdx = 9;
+
+            for(int i=1; i<recList.size(); i++)
+            {
+            	String[] rec = recList.get(i);
+
+            	String fullName=null, firstName=null, lastName=null, email=null, phone=null, address1=null, city=null, state=null, zip=null, mode=null, project=null;
             	double donationAmount;
 
-            	fullName = rec[0];            	
+            	fullName = rec[0];
             	firstName = rec[1];
             	lastName = rec[2];
-            	
+
             	String[] names = Utility.parseName(fullName);
             	if(names!=null) {
             		if(firstName == null) {
@@ -125,25 +135,36 @@ public class ReadAllDonations {
             		if(lastName == null) {
             			lastName = names[1];
             		}
-            	} 
-            			
+            	}
+
             	email = rec[3];
-            	
+
+            	// Skip record if all name fields are empty and no real email
+            	boolean hasName = (fullName != null && !fullName.trim().isEmpty())
+            			|| (firstName != null && !firstName.trim().isEmpty())
+            			|| (lastName != null && !lastName.trim().isEmpty());
+            	boolean hasRealEmail = email != null && !email.trim().isEmpty() && !email.trim().toLowerCase().startsWith("temp");
+
+            	if(!hasName && !hasRealEmail) {
+            		logger.info("skipping record with no name and no real email at line {}", (i+1));
+            		continue;
+            	}
+
             	if(email == null || "".equals(email.trim())) {
             		tmpEmailCounter++;
-            		email = tmpEmail.replaceAll("counter", String.valueOf(tmpEmailCounter));            		
+            		email = tmpEmail.replaceAll("counter", String.valueOf(tmpEmailCounter));
             	}
-            	
-            	email = email.trim();           	            	
+
+            	email = email.trim();
             	phone = rec[4];
             	address1 = rec[5];
             	city = rec[6];
             	state = rec[7];
             	zip = rec[8];
-            	mode = rec[9];
-            	project = rec[10];
-            	
-            	donationAmount = Utility.getDouble(rec[9]);
+            	if(modeIdx >= 0 && modeIdx < rec.length) mode = rec[modeIdx];
+            	if(projectIdx >= 0 && projectIdx < rec.length) project = rec[projectIdx];
+
+            	donationAmount = Utility.getDouble(rec[amountIdx]);
             	
             	Donor donor = donorMap.get(email);            	
             	Donor temp = new Donor(fullName, firstName, lastName, email, donationAmount, phone, address1, city, state, zip, mode, project);
