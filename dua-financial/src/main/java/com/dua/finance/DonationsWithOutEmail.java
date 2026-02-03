@@ -96,7 +96,7 @@ public class DonationsWithOutEmail {
 
 				String fullName = null, firstName = null, lastName = null, email = null, phone = null, address1 = null, mode = null, project = null,
 						city = null, state = null, zip = null;
-				double donationAmount;
+				java.math.BigDecimal donationAmount;
 
 				fullName = rec[1];
 				firstName = rec[2];
@@ -125,7 +125,7 @@ public class DonationsWithOutEmail {
 				mode = rec[10];
 				project = rec[11];
 
-				donationAmount = Utility.getDouble(rec[10]);
+				donationAmount = Utility.getBigDecimal(rec[10]);
 
 				Donor donor = donorMap.get(fullName);
 				Donor temp = new Donor(fullName, firstName, lastName, email, donationAmount, phone, address1, city,
@@ -135,7 +135,7 @@ public class DonationsWithOutEmail {
 					donor = temp;
 				} else {
 					donor = Utility.syncObject(donor, temp);
-					donor.setDonationAmount(donor.getDonationAmount() + donationAmount);
+					donor.setDonationAmount(donor.getDonationAmount().add(donationAmount));
 				}
 
 				donorMap.put(fullName, donor);

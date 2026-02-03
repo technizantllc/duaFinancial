@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -91,18 +92,19 @@ public class Utility {
 		return names;
 	}
 	
-	public static double getDouble(String s)
+	public static BigDecimal getBigDecimal(String s)
 	{
-		if(s == null)
-			return 0;
-		
+		if(s == null || s.trim().isEmpty())
+			return BigDecimal.ZERO;
+
 		s = s.replace("$", "");
 		s = s.replace(",", "");
+		s = s.trim();
 
-		return Double.parseDouble(s);
+		return new BigDecimal(s);
 	}
-	
-	public static String getFormattedAmt(double d)
+
+	public static String getFormattedAmt(BigDecimal d)
 	{
 		return String.format("%1$,.2f", d);
 	}

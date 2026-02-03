@@ -3,6 +3,8 @@ package com.dua.finance;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.math.BigDecimal;
+
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvBindByPosition;
 
@@ -14,7 +16,7 @@ public class Donor {
 
 	}
 
-	public Donor(String fullName, String firstName, String lastName, String email, double donationAmount, String phone,
+	public Donor(String fullName, String firstName, String lastName, String email, BigDecimal donationAmount, String phone,
 			String address1, String city, String state, String zip, String mode, String project) {
 		this.fullName = fullName;
 		this.firstName = firstName;
@@ -90,7 +92,7 @@ public class Donor {
 
 	@CsvBindByName(column = "Donation Amount")
 	@CsvBindByPosition(position = 10)
-	public double donationAmount;
+	public BigDecimal donationAmount = BigDecimal.ZERO;
 
 	@CsvBindByName(column = "Mode")
 	@CsvBindByPosition(position = 11)
@@ -160,11 +162,11 @@ public class Donor {
 		this.email = email;
 	}
 
-	public double getDonationAmount() {
+	public BigDecimal getDonationAmount() {
 		return donationAmount;
 	}
 
-	public void setDonationAmount(double donationAmount) {
+	public void setDonationAmount(BigDecimal donationAmount) {
 		this.donationAmount = donationAmount;
 	}
 

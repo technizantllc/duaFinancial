@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,8 +21,7 @@ import com.opencsv.bean.StatefulBeanToCsvBuilder;
 public class ReadAllDonations {
 	
 	public static final Logger logger = LogManager.getLogger(ReadAllDonations.class);
-	public static int tmpEmailCounter = 0;
-	public static String tmpEmail = "temp-counter@temp.com";
+	public static int noEmailCounter = 0;
 	
 	public static void main(String[] args) {
 		
@@ -121,7 +121,7 @@ public class ReadAllDonations {
             	String[] rec = recList.get(i);
 
             	String fullName=null, firstName=null, lastName=null, email=null, phone=null, address1=null, city=null, state=null, zip=null, mode=null, project=null;
-            	double donationAmount;
+            	BigDecimal donationAmount;
 
             	fullName = rec[0];
             	firstName = rec[1];
@@ -150,12 +150,12 @@ public class ReadAllDonations {
             		continue;
             	}
 
-            	if(email == null || "".equals(email.trim())) {
-            		tmpEmailCounter++;
-            		email = tmpEmail.replaceAll("counter", String.valueOf(tmpEmailCounter));
+            	if(email != null) email = email.trim();
+            	if(email == null || email.isEmpty()) {
+            		email = "";
+            		noEmailCounter++;
             	}
 
-            	email = email.trim();
             	phone = rec[4];
             	address1 = rec[5];
             	city = rec[6];
@@ -164,9 +164,13 @@ public class ReadAllDonations {
             	if(modeIdx >= 0 && modeIdx < rec.length) mode = rec[modeIdx];
             	if(projectIdx >= 0 && projectIdx < rec.length) project = rec[projectIdx];
 
-            	donationAmount = Utility.getDouble(rec[amountIdx]);
-            	
-            	Donor donor = donorMap.get(email);            	
+            	donationAmount = Utility.getBigDecimal(rec[amountIdx]);
+
+            	// Use email as map key if available, otherwise use name
+            	String mapKey = !email.isEmpty() ? email.toLowerCase()
+            			: "no-email-" + fullName.trim().toLowerCase();
+
+            	Donor donor = donorMap.get(mapKey);
             	Donor temp = new Donor(fullName, firstName, lastName, email, donationAmount, phone, address1, city, state, zip, mode, project);
 
             	if(donor==null) {
@@ -175,10 +179,10 @@ public class ReadAllDonations {
             	else
             	{
             		donor = Utility.syncObject(donor, temp);
-            		donor.setDonationAmount(donor.getDonationAmount()+donationAmount);
+            		donor.setDonationAmount(donor.getDonationAmount().add(donationAmount));
             	}
-            	
-            	donorMap.put(email, donor);            	
+
+            	donorMap.put(mapKey, donor);            	
             }
             
         }

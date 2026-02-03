@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -184,7 +185,7 @@ public class UpdateZelleData {
 
 				email = email.trim();
 
-				Donor donor = new Donor(fullName, firstName, lastName, email, 0, null, null, null, null, null, null, null);
+				Donor donor = new Donor(fullName, firstName, lastName, email, BigDecimal.ZERO, null, null, null, null, null, null, null);
 
 				donorList.add(donor);
 			}
