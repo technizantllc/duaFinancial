@@ -37,6 +37,13 @@ public class PrintReceipts {
 		logger.info("Donors list size: "+donors.size());
 		String templateContent = readAllBytes(sourceFolder+"/config/"+AppConstants.RECEIPT_TEMPLATE);
 		for(Donor donor : donors) {
+			String email = donor.getEmail();
+			// Skip if email is null, empty, or temp
+			if(email == null || email.trim().isEmpty() || email.contains("@temp.com")) {
+				logger.warn("Skipping donor {} - invalid or temp email: {}", donor.getFullName(), email);
+				continue;
+			}
+
 			String content = templateContent.replaceAll("XX-Name-XX", donor.getFullName());
 			content = content.replaceAll("XX-Amt-XX", Utility.getFormattedAmt(donor.getDonationAmount()));			
 			content = content.replaceAll("XX-Street-XX", donor.getAddress1()!=null?donor.getAddress1():"");			

@@ -95,11 +95,17 @@ public static void sendMail(List<Donor> donors, String sourceFolder, Properties 
 	    	
 	    	message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(donor.getEmail())); 
 	    	
-	    	MimeBodyPart attachmentPart = new MimeBodyPart();
-	    	
 	    	File receipt = new File(sourceFolder+"/Receipts/Receipt-"+donor.getFullName()+"-"+donor.getDonorId()+".pdf");
 	    	File sentReceipt = new File(sourceFolder+"/Receipts/sent/Receipt-"+donor.getFullName()+"-"+donor.getDonorId()+".pdf");
 	    	File receiptToDelete = new File(sourceFolder+"/Receipts/Receipt-"+donor.getFullName()+"-"+donor.getDonorId()+".rtf");
+
+	    	// Skip if PDF doesn't exist
+	    	if(!receipt.exists()) {
+	    		logger.info("{} doesn't exist", receipt.getName());
+	    		continue;
+	    	}
+
+	    	MimeBodyPart attachmentPart = new MimeBodyPart();
 	    	attachmentPart.attachFile(receipt);
 	    	
 	    	Multipart multipart = new MimeMultipart();
@@ -109,23 +115,20 @@ public static void sendMail(List<Donor> donors, String sourceFolder, Properties 
 	    	message.setContent(multipart);
 	        
 	    	try {
-	    		if(receipt.exists()) {
-	    			// Use existing transport connection instead of Transport.send()
-	    			transport.sendMessage(message, message.getAllRecipients());
-	    			//move the receipt to sent folder
-	    	    	Files.move(receipt.toPath(), sentReceipt.toPath(), StandardCopyOption.REPLACE_EXISTING);
-	    	    	logger.info("{} sent to {}", receipt.getName(), donor.getEmail());
+	    		// Send email
+	    		transport.sendMessage(message, message.getAllRecipients());
 
-	    	    	if(receiptToDelete.exists()) {
-	    	    		receiptToDelete.deleteOnExit();
-	    	    	}
-	    	    	else {
-	    	    		logger.info("{} doesn't exist",receiptToDelete.getName());
-	    	    	}
-	    		}
-	    		else
-	    		{
-	    			logger.info("{} doesn't exist",receipt.getName());
+	    		// Move PDF to sent folder
+	    		Files.move(receipt.toPath(), sentReceipt.toPath(), StandardCopyOption.REPLACE_EXISTING);
+	    		logger.info("{} sent to {}", receipt.getName(), donor.getEmail());
+
+	    		// Delete the .rtf file immediately
+	    		if(receiptToDelete.exists()) {
+	    			if(receiptToDelete.delete()) {
+	    				logger.info("{} deleted", receiptToDelete.getName());
+	    			} else {
+	    				logger.warn("Failed to delete {}", receiptToDelete.getName());
+	    			}
 	    		}
 	    	}
 	    	catch(Exception e)
