@@ -55,20 +55,12 @@ public static void main(String args[])
 public static void sendMail(List<Donor> donors, String sourceFolder, Properties appProps)
 {
 	Properties prop = new Properties();
-	/*
-	 * prop.put("mail.smtp.host", appProps.getProperty("mail.smtp.host"));
-	 * prop.put("mail.smtp.port", appProps.getProperty("mail.smtp.port"));
-	 * prop.put("mail.smtp.auth", "true"); prop.put("mail.smtp.socketFactory.port",
-	 * appProps.getProperty("mail.smtp.port"));
-	 * prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-	 */
     prop.put("mail.smtp.host", appProps.getProperty("mail.smtp.host"));
     prop.put("mail.smtp.port", appProps.getProperty("mail.smtp.port"));
     prop.put("mail.smtp.auth", "true");
-    prop.put("mail.smtp.socketFactory.port", appProps.getProperty("mail.smtp.port")); // Correct this line
+    prop.put("mail.smtp.socketFactory.port", appProps.getProperty("mail.smtp.port"));
     prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
 
-    
 	Session session = Session.getInstance(prop,
             new javax.mail.Authenticator() {
                 protected PasswordAuthentication getPasswordAuthentication() {
@@ -76,13 +68,20 @@ public static void sendMail(List<Donor> donors, String sourceFolder, Properties 
                 }
             });
 
+    Transport transport = null;
     try {
-    	
+    	// Reuse single transport connection to avoid rate limiting
+    	transport = session.getTransport("smtp");
+    	transport.connect();
+
     	for(Donor donor : donors)
     	{
-    		
-    		if(donor.getEmail().contains("@temp.com"))
+    		String email = donor.getEmail();
+
+    		// Skip if email is null, empty, or temp
+    		if(email == null || email.trim().isEmpty() || email.contains("@temp.com"))
     		{
+    			logger.warn("Skipping donor {} - invalid or temp email: {}", donor.getFullName(), email);
     			continue;
     		}
     		
@@ -111,11 +110,12 @@ public static void sendMail(List<Donor> donors, String sourceFolder, Properties 
 	        
 	    	try {
 	    		if(receipt.exists()) {
-	    			Transport.send(message);
+	    			// Use existing transport connection instead of Transport.send()
+	    			transport.sendMessage(message, message.getAllRecipients());
 	    			//move the receipt to sent folder
 	    	    	Files.move(receipt.toPath(), sentReceipt.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	    	    	logger.info("{} sent to {}", receipt.getName(), donor.getEmail());
-	    	    	
+
 	    	    	if(receiptToDelete.exists()) {
 	    	    		receiptToDelete.deleteOnExit();
 	    	    	}
@@ -130,17 +130,25 @@ public static void sendMail(List<Donor> donors, String sourceFolder, Properties 
 	    	}
 	    	catch(Exception e)
 	    	{
-	    		e.printStackTrace();
+	    		logger.error("Failed to send email to {}: {}", donor.getEmail(), e.getMessage());
 	    	}
 	    	
     	}
-        System.out.println("Done");
+        logger.info("Email sending complete");
 
     } catch (MessagingException e) {
-        e.printStackTrace();
+        logger.error("Messaging error: {}", e.getMessage());
     } catch (IOException e) {
-		e.printStackTrace();
-	}
+		logger.error("IO error: {}", e.getMessage());
+	} finally {
+    	if(transport != null) {
+    		try {
+    			transport.close();
+    		} catch (MessagingException e) {
+    			logger.error("Error closing transport: {}", e.getMessage());
+    		}
+    	}
+    }
 }
 
 public static Set<String> listFilesUsingJavaIO(String dir) {
